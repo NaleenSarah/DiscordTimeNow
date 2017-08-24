@@ -1,4 +1,7 @@
-﻿using System;
+﻿#define DEBUG
+
+using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -12,6 +15,8 @@ using Discord.Commands;
 using Microsoft.Extensions.DependencyInjection;
 using System.IO;
 
+
+
 namespace DiscordTimeNow
 {
     public class Program
@@ -19,18 +24,43 @@ namespace DiscordTimeNow
         public static void Main(string[] args) =>
            new Program().Start().GetAwaiter().GetResult();
 
+        [Serializable()]
+        public class GuildStuff {
+            public string PendingRole { get; set; }
+            public string OwnRole { get; set; }
+            public string DontOwnRole { get; set; }
+            public ulong GeneralChannel { get; set; }
+        }
+
+        static public bool thread1exit;
+        Thread oThread;
+
         static public SortedDictionary<ulong, DateTime> map;
+        static public SortedDictionary<ulong, GuildStuff> GuildStuffs;
         static public Dictionary<string, string> DictTimeZoneAbrA;
-        
+        static public string[] ArrayUrukNames;
+        static public string[] ArrayUrukTitles;
+
         private DiscordSocketClient client;
         private CommandHandler handler;
+
+        ~Program() {
+            SaveData();
+            thread1exit = true;
+            oThread.Abort();
+        }
 
         public async Task Start()
         {
             map = new SortedDictionary<ulong, DateTime>();
-            //DictTimeZoneAbrA = new Dictionary<string, string>();
+            GuildStuffs = new SortedDictionary<ulong, GuildStuff>();
+            thread1exit = false;
+
+            LoadData();
 
             initZoneDict();
+            initUrukNames();
+            initUrukTitles();
 
             client = new DiscordSocketClient();
             client = new DiscordSocketClient(new DiscordSocketConfig()
@@ -38,19 +68,27 @@ namespace DiscordTimeNow
                 LogLevel = LogSeverity.Verbose,
             });
 
+#if !DEBUG
             string LiveToken = "CHANGE ME";
-            //string DebugToken = "CHANGE ME";
-
+#endif
+#if DEBUG
+            string DebugToken = "CHANGE ME";
+#endif
             client.Log += Logger;
-            //await client.LoginAsync(TokenType.Bot, DebugToken);
+#if !DEBUG
             await client.LoginAsync(TokenType.Bot, LiveToken);
+#endif
+#if DEBUG
+            await client.LoginAsync(TokenType.Bot, DebugToken);
+#endif
             await client.StartAsync();
 
             var serviceProvider = ConfigureServices();
             handler = new CommandHandler(serviceProvider);
             await handler.ConfigureAsync();
 
-
+            oThread = new Thread(new ThreadStart(SaveDataThread));
+            oThread.Start();
 
         //Block this program untill it is closed
         await Task.Delay(-1);
@@ -80,6 +118,15 @@ namespace DiscordTimeNow
             Console.ForegroundColor = cc;
             return Task.CompletedTask;
         }
+
+        public async Task restartmethodxd()
+        {
+            await Task.Delay(10000);
+            System.Diagnostics.Process.Start("launch.cmd");
+            Environment.Exit(0);
+
+        }
+
         public IServiceProvider ConfigureServices()
         {
             var services = new ServiceCollection()
@@ -88,6 +135,98 @@ namespace DiscordTimeNow
             var provider = new DefaultServiceProviderFactory().CreateServiceProvider(services);
 
             return provider;
+        }
+
+        static public void SaveData() {
+            var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+            var fi = new System.IO.FileInfo(@"DateTimes.bin");
+
+            using (var binaryFile = fi.Create())
+            {
+                binaryFormatter.Serialize(binaryFile, map);
+                binaryFile.Flush();
+            }
+
+            var figs = new System.IO.FileInfo(@"GuildStuff.bin");
+
+            using (var binaryFile = figs.Create())
+            {
+                binaryFormatter.Serialize(binaryFile, GuildStuffs);
+                binaryFile.Flush();
+            }
+
+        }
+
+        static public void SaveDataThread()
+        {
+            while (!thread1exit)
+            {
+                Thread.Sleep(100000);
+
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+                var fi = new System.IO.FileInfo(@"DateTimes.bin");
+
+                using (var binaryFile = fi.Create())
+                {
+                    binaryFormatter.Serialize(binaryFile, map);
+                    binaryFile.Flush();
+                }
+
+                var figs = new System.IO.FileInfo(@"GuildStuff.bin");
+
+                using (var binaryFile = figs.Create())
+                {
+                    binaryFormatter.Serialize(binaryFile, GuildStuffs);
+                    binaryFile.Flush();
+                }
+
+            }
+
+        }
+
+        static public void SaveTimeData()
+        {
+            var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+            var fi = new System.IO.FileInfo(@"DateTimes.bin");
+
+            using (var binaryFile = fi.Create())
+            {
+                binaryFormatter.Serialize(binaryFile, map);
+                binaryFile.Flush();
+            }
+
+        }
+
+        void LoadData()
+        {
+            var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+
+            if (File.Exists(@"DateTimes.bin"))
+            {
+                var fi = new System.IO.FileInfo(@"DateTimes.bin");
+
+
+                SortedDictionary<ulong, DateTime> readBack;
+                using (var binaryFile = fi.OpenRead())
+                {
+                    readBack = (SortedDictionary<ulong, DateTime>)binaryFormatter.Deserialize(binaryFile);
+                }
+                map = readBack;
+            }
+
+            if (File.Exists(@"GuildStuff.bin"))
+            {
+                var fi = new System.IO.FileInfo(@"GuildStuff.bin");
+
+
+                SortedDictionary<ulong, GuildStuff> readBack;
+                using (var binaryFile = fi.OpenRead())
+                {
+                    readBack = (SortedDictionary<ulong, GuildStuff>)binaryFormatter.Deserialize(binaryFile);
+                }
+                GuildStuffs = readBack;
+            }
+
         }
 
         void initZoneDict()
@@ -176,6 +315,414 @@ namespace DiscordTimeNow
                 { "TOT" , "Tonga Standard Time" },
                 { "SMST" , "Samoa Standard Time" }
             };
+        }
+
+        void initUrukNames()
+        {
+            ArrayUrukNames = new string[] {
+                "Akoth",
+                "Amûg",
+                "Ashgarn",
+                "Azdûsh",
+                "Bagabug",
+                "Barfa",
+                "Blorg",
+                "Bolg",
+                "Borgu",
+                "Brogg",
+                "Bûbol",
+                "Bûth",
+                "Dûgza",
+                "Dûsh",
+                "Dûshrat",
+                "Dharg",
+                "Feldûsh",
+                "Felgrat",
+                "Flak",
+                "Folgûm",
+                "Ghâm",
+                "Ghûra",
+                "Gimub",
+                "Glûk",
+                "Golm",
+                "Gorfel",
+                "Gorgûm",
+                "Goroth",
+                "Grublik",
+                "Gûndza",
+                "Horhog",
+                "Hork",
+                "Horza",
+                "Hoshû",
+                "Hoshgrish",
+                "Hûmgrat",
+                "Hûra",
+                "Ishgha",
+                "Ishmoz",
+                "Kâka",
+                "Kothûg",
+                "Krimp",
+                "Krûk",
+                "Kugáluga",
+                "Lamlûg",
+                "Latbag",
+                "Lorm",
+                "Lûga",
+                "Lûgdash",
+                "Lûgnak",
+                "Mâku",
+                "Malmûg",
+                "Mogg",
+                "Mormog",
+                "Mozfel",
+                "Muggrish",
+                "Mûglûk",
+                "Muzglob",
+                "Nákra",
+                "Nazdûg",
+                "Názkûga",
+                "Nazû",
+                "Norsko",
+                "Norûk",
+                "Ogbur",
+                "Ogthrak",
+                "Olgoth",
+                "Olrok",
+                "Orthog",
+                "Pâsh",
+                "Pígug",
+                "Prâk",
+                "Pûg",
+                "Pûgrish",
+                "Pushkrimp",
+                "Ratanák",
+                "Ratbag",
+                "Ratlûg",
+                "Ronk",
+                "Rûg",
+                "Rûkdûg",
+                "Shágflak",
+                "Shaká",
+                "Skak",
+                "Skûn",
+                "Snagog",
+                "Takra",
+                "Târz",
+                "Thakrak",
+                "Thrak",
+                "Torz",
+                "Tûgog",
+                "Tûkâ",
+                "Tûmhom",
+                "Tûmûg",
+                "Ûgakûga",
+                "Ûggû",
+                "Ûkbûk",
+                "Ûkrom",
+                "Ûkshak",
+                "Ûshbaka",
+                "Ûshgol",
+                "Uthûg",
+                "Zâthra",
+                "Zog",
+                "Zogdûsh",
+                "Zûgor",
+                "Zûmug",
+                "Zunn"
+               };
+        }
+
+        void initUrukTitles()
+        {
+            ArrayUrukTitles = new string[] {
+                "Archer Trainer",
+                "Ash-Skin",
+                "Bag-Head",
+                "Barrel-Scraper",
+                "Beastmaster",
+                "Beast Slayer",
+                "Berserker Master",
+                "Black-Blade",
+                "Black-Heart",
+                "Black-Thorn",
+                "Blade Master",
+                "Blade Sharpener",
+                "Blade Smith",
+                "Blood Licker",
+                "Blood-Lover",
+                "Blood-Hand",
+                "Blood-Storm",
+                "Bone Collector",
+                "Bone-Crusher",
+                "Bone-Licker",
+                "Bone-Ripper",
+                "Bone-Snapper",
+                "Brain Damaged",
+                "Brawl-Master",
+                "Bow Master",
+                "Brawler",
+                "Bright-Eyes",
+                "Broken-Shield",
+                "Cannibal",
+                "Caragor-Fang",
+                "Caragor Slayer",
+                "Caragor Tamer",
+                "Corpse-Eater",
+                "Corpse Grinder",
+                "Cave-Rat",
+                "Chain Driver",
+                "Dead-Eye",
+                "Death-Blade",
+                "Deathbringer",
+                "Drooler",
+                "Dung-Collector",
+                "Dwarf-Eater",
+                "Dwarf-Killer",
+                "Eagle Eye",
+                "Elf-Slayer",
+                "Evil Eye",
+                "Eye-Gouger",
+                "Fast Feet",
+                "Fat Head",
+                "Fire-Brander",
+                "Flame Monger",
+                "Flesh Glutton",
+                "Flesh-Picker",
+                "Flesh-Render",
+                "Flesh-Rot",
+                "Foul-Spawn",
+                "Frog-Blood",
+                "Giggles",
+                "Graug Catcher",
+                "Graug Slayer",
+                "Grog-Burner",
+                "Ghûl Hunter",
+                "Ghûl Lover",
+                "Ghûl Slayer",
+                "Gold-Fang",
+                "Guard Master",
+                "Halfling-Lover",
+                "Head-Chopper",
+                "Head-Hunter",
+                "Heart-Eater",
+                "Horn Blower",
+                "Hot Tongs",
+                "Iron-Arm",
+                "Jaws",
+                "Jitters",
+                "King-Slayer",
+                "Learned Scribe",
+                "Lice-Head",
+                "Life-Drinker",
+                "Limp-Leg",
+                "Literate One",
+                "Lock-Jaw",
+                "Long-Tooth",
+                "Lucky Shot",
+                "Lump-Head",
+                "Mad-Eye",
+                "Maggot-Nest",
+                "Man-Hunter",
+                "Man-Stalker",
+                "Meat Grinder",
+                "Meat-Hooks",
+                "Metal-Beard",
+                "Metal Beater",
+                "Neck Snapper",
+                "Night-Bringer",
+                "Oath-Breaker",
+                "of Lithlad",
+                "of the Black Gate",
+                "of the Pit",
+                "of the Spiders",
+                "of the Stench",
+                "of the Welts",
+                "One-Eye",
+                "Pain-Lover",
+                "Pit Fighter",
+                "Plague-Bringer",
+                "Pot-Licker",
+                "Prison Master",
+                "the Quarter Master",
+                "Quick-Blades",
+                "Rabble Rouser",
+                "Raid Leader",
+                "Ranger-Killer",
+                "Ravager",
+                "Raw-Head",
+                "Runny-Bowls",
+                "Sawbones",
+                "Scar-Artist",
+                "Shaman",
+                "Shield Master",
+                "Skull Bow",
+                "Skull-Cracker",
+                "Slashface",
+                "Slave Lover",
+                "Slave Taskmaster",
+                "Storm-Bringer",
+                "Sword Master",
+                "the All-Eater",
+                "the Advisor",
+                "the Amputator",
+                "the Angry",
+                "the Armorer",
+                "the Assassin",
+                "the Beheader",
+                "the Biter",
+                "the Black",
+                "the Blacksmith",
+                "the Bleeder",
+                "the Bloated",
+                "the Bloody",
+                "the Blue",
+                "the Bone Collector",
+                "the Bowmaster",
+                "the Brander",
+                "the Brave",
+                "the Breaker",
+                "the Brewer",
+                "the Brother",
+                "the Brown",
+                "the Brute",
+                "the Butcher",
+                "the Catcher",
+                "the Cave-Born",
+                "the Champion",
+                "the Choker",
+                "the Chunky",
+                "the Claw",
+                "the Clever",
+                "the Collector",
+                "the Complainer",
+                "the Cook",
+                "the Corruptor",
+                "the Coward",
+                "the Crafty",
+                "the Crazy",
+                "the Cruel",
+                "the Crippler",
+                "the Crow",
+                "the Dark",
+                "the Defender",
+                "the Defiler",
+                "the Destroyer",
+                "the Devourer",
+                "the Destroyer",
+                "the Diseased",
+                "the Disgusting",
+                "the Dreamer",
+                "the Driver",
+                "the Drowned",
+                "the Drunk",
+                "the Dumb",
+                "the Duelist",
+                "the Elder",
+                "the Endless",
+                "the Ever-Wounded",
+                "the Executioner",
+                "the Fearless",
+                "the Filthy",
+                "the Flogger",
+                "the Fanatical",
+                "the Flesh Glutton",
+                "the Fool",
+                "the Foul",
+                "the Friendly",
+                "the Funny One",
+                "the Gentle",
+                "the Gluttonous",
+                "the Gorger",
+                "the Greedy",
+                "the Grim",
+                "the Grinder",
+                "the Gutless",
+                "the Hacker",
+                "the Handsome",
+                "the Heartless",
+                "the Hell-Hawk",
+                "the Hook",
+                "the Humiliator",
+                "the Hungry",
+                "the Immovable",
+                "the Infernal",
+                "the Judge",
+                "the Killer",
+                "the Kin-Slayer",
+                "the Knife",
+                "the Large",
+                "the Literate One",
+                "the Legend",
+                "the Loaded",
+                "the Lookout",
+                "the Mad",
+                "the Mangler",
+                "the Marauder",
+                "the Massive",
+                "the Man-Eater",
+                "the Meat Hoarder",
+                "the Merciful",
+                "the Messenger",
+                "the Mindless",
+                "the Merciless",
+                "the Mountain",
+                "the Murderous",
+                "the Other Twin",
+                "the Painted",
+                "the Proud",
+                "the Puny",
+                "the Rash",
+                "the Rat",
+                "the Raven",
+                "the Red",
+                "the Reckless",
+                "the Relentless",
+                "the Ripper",
+                "the Ruinous",
+                "the Runner",
+                "the Runt",
+                "the Sadistic",
+                "the Savage",
+                "the Scholar",
+                "the Screamer",
+                "the Serpent",
+                "the Shadow",
+                "the Shield",
+                "the Skinless",
+                "the Slasher",
+                "the Slaughterer",
+                "the Small",
+                "the Smasher",
+                "the Spike",
+                "the Stinger",
+                "the Stout",
+                "the Surgeon",
+                "the Swift",
+                "the Tongue",
+                "the Trainer",
+                "the Twin",
+                "the Unkillable",
+                "the Vile",
+                "the Wanderer",
+                "the Watcher",
+                "the Weak",
+                "the Whiner",
+                "the Wise",
+                "the Wrestler",
+                "Thin Bones",
+                "Thunderhead",
+                "Tree-Killer",
+                "Troll Slayer",
+                "Troll-Born",
+                "Ugly Face",
+                "Who Flees",
+                "Lice-Head",
+                "Wraith Slayer",
+                "Wrath-Breeder",
+                "the Pink",
+                "Wild",
+                "the play thing of Sarah"
+               };
         }
     }
 }
