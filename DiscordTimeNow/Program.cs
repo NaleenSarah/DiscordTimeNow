@@ -96,11 +96,10 @@ namespace DiscordTimeNow
             });
 
 #if !DEBUG
-                string LiveToken = "MzU0MzAyMjk4NTk3NDkwNzAy.DI8RSg.vu2kwWQ-bUHnwxhsy-ra2PHRU9Q";
-            //string LiveToken = "MzM1NDMzOTIyMjY1NzQzMzYy.DEuVLQ.eGpqj5_jEm2ePLO6hpQV3o2eNww";
+             
 #endif
 #if DEBUG
-            //string DebugToken = "MzM1NTYzMTk3ODQ1MDc4MDE2.DEvR9A.dGzE7q1upf_wGX9B7OdPLxEfg2c";
+            
 #endif
             client.Log += Logger;
             
