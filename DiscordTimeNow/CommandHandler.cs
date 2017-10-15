@@ -82,8 +82,8 @@ namespace DiscordTimeNow
                 var result = await commands.ExecuteAsync(context, argPos, map);
 
                 //If the command failed, notify the user
-                //if (!result.IsSuccess && result.ErrorReason != "Unknown command.")
-                //    await message.Channel.SendMessageAsync($"**Error:** {result.ErrorReason}");
+                if (!result.IsSuccess && result.ErrorReason != "Unknown command.")
+                    await message.Channel.SendMessageAsync($"**Error:** {result.ErrorReason}");
             }
 
         }

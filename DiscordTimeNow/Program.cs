@@ -32,17 +32,36 @@ namespace DiscordTimeNow
             public ulong GeneralChannel { get; set; }
         }
 
+        [Serializable()]
+        public class GuildStuff103
+        {
+            public string PendingRole { get; set; }
+            public string OwnRole { get; set; }
+            public string DontOwnRole { get; set; }
+            public ulong GeneralChannel { get; set; }
+            public ulong Brands { get; set; }
+            public ulong Commands { get; set; }
+            public ulong TTLCommands { get; set; }
+            public string WelcomeMSG { get; set; }
+        }
+
         static public bool thread1exit;
         Thread oThread;
 
         static public SortedDictionary<ulong, DateTime> map;
-        static public SortedDictionary<ulong, GuildStuff> GuildStuffs;
+        static public SortedDictionary<ulong, ulong> Guildbrands;
+        //static public SortedDictionary<ulong, GuildStuff> GuildStuffs;
+        static public SortedDictionary<ulong, GuildStuff103> GuildStuffs103;
         static public Dictionary<string, string> DictTimeZoneAbrA;
         static public string[] ArrayUrukNames;
         static public string[] ArrayUrukTitles;
 
         private DiscordSocketClient client;
         private CommandHandler handler;
+
+        string FileToken = "";
+        public static readonly string appdir = AppContext.BaseDirectory;
+        BotData ConfigData;
 
         ~Program() {
             SaveData();
@@ -53,14 +72,22 @@ namespace DiscordTimeNow
         public async Task Start()
         {
             map = new SortedDictionary<ulong, DateTime>();
-            GuildStuffs = new SortedDictionary<ulong, GuildStuff>();
+            //GuildStuffs = new SortedDictionary<ulong, GuildStuff>();
+            GuildStuffs103 = new SortedDictionary<ulong, GuildStuff103>();
+            Guildbrands = new SortedDictionary<ulong, ulong>();
             thread1exit = false;
-
+            
+            ConfigData = new BotData();
+            ConfigData = ConfigData.Load();
             LoadData();
 
             initZoneDict();
             initUrukNames();
-            initUrukTitles();
+            initUrukTitles();  
+
+            FileToken = ConfigData.Token;
+
+
 
             client = new DiscordSocketClient();
             client = new DiscordSocketClient(new DiscordSocketConfig()
@@ -69,17 +96,19 @@ namespace DiscordTimeNow
             });
 
 #if !DEBUG
-            string LiveToken = "CHANGE ME";
+                string LiveToken = "MzU0MzAyMjk4NTk3NDkwNzAy.DI8RSg.vu2kwWQ-bUHnwxhsy-ra2PHRU9Q";
+            //string LiveToken = "MzM1NDMzOTIyMjY1NzQzMzYy.DEuVLQ.eGpqj5_jEm2ePLO6hpQV3o2eNww";
 #endif
 #if DEBUG
-            string DebugToken = "CHANGE ME";
+            //string DebugToken = "MzM1NTYzMTk3ODQ1MDc4MDE2.DEvR9A.dGzE7q1upf_wGX9B7OdPLxEfg2c";
 #endif
             client.Log += Logger;
+            
 #if !DEBUG
             await client.LoginAsync(TokenType.Bot, LiveToken);
 #endif
 #if DEBUG
-            await client.LoginAsync(TokenType.Bot, DebugToken);
+            await client.LoginAsync(TokenType.Bot, FileToken);
 #endif
             await client.StartAsync();
 
@@ -90,8 +119,10 @@ namespace DiscordTimeNow
             oThread = new Thread(new ThreadStart(SaveDataThread));
             oThread.Start();
 
-        //Block this program untill it is closed
-        await Task.Delay(-1);
+            
+            //Block this program untill it is closed
+            await Task.Delay(-1);
+            //await client.Disconnected().;
 
         }
         private static Task Logger(LogMessage lmsg)
@@ -122,7 +153,9 @@ namespace DiscordTimeNow
         public async Task restartmethodxd()
         {
             await Task.Delay(10000);
-            System.Diagnostics.Process.Start("launch.cmd");
+
+            string thisexefile = Path.Combine(appdir, "DiscordTimeNow.exe");
+            System.Diagnostics.Process.Start(thisexefile);
             Environment.Exit(0);
 
         }
@@ -138,22 +171,8 @@ namespace DiscordTimeNow
         }
 
         static public void SaveData() {
-            var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            var fi = new System.IO.FileInfo(@"DateTimes.bin");
-
-            using (var binaryFile = fi.Create())
-            {
-                binaryFormatter.Serialize(binaryFile, map);
-                binaryFile.Flush();
-            }
-
-            var figs = new System.IO.FileInfo(@"GuildStuff.bin");
-
-            using (var binaryFile = figs.Create())
-            {
-                binaryFormatter.Serialize(binaryFile, GuildStuffs);
-                binaryFile.Flush();
-            }
+            SaveTimeData();
+            SaveGuildData();
 
         }
 
@@ -161,33 +180,17 @@ namespace DiscordTimeNow
         {
             while (!thread1exit)
             {
+                SaveTimeData();
+                SaveGuildData();
+
                 Thread.Sleep(100000);
-
-                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-                var fi = new System.IO.FileInfo(@"DateTimes.bin");
-
-                using (var binaryFile = fi.Create())
-                {
-                    binaryFormatter.Serialize(binaryFile, map);
-                    binaryFile.Flush();
-                }
-
-                var figs = new System.IO.FileInfo(@"GuildStuff.bin");
-
-                using (var binaryFile = figs.Create())
-                {
-                    binaryFormatter.Serialize(binaryFile, GuildStuffs);
-                    binaryFile.Flush();
-                }
-
             }
-
         }
 
         static public void SaveTimeData()
         {
             var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
-            var fi = new System.IO.FileInfo(@"DateTimes.bin");
+            var fi = new System.IO.FileInfo(@"./configuration/DateTimes.bin");
 
             using (var binaryFile = fi.Create())
             {
@@ -197,14 +200,40 @@ namespace DiscordTimeNow
 
         }
 
-        void LoadData()
+        //static public void SaveGuildData()
+        //{
+        //    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+        //    var fi = new System.IO.FileInfo(@"./configuration/GuildStuff_103.bin");
+
+        //    using (var binaryFile = fi.Create())
+        //    {
+        //        binaryFormatter.Serialize(binaryFile, GuildStuffs103);
+        //        binaryFile.Flush();
+        //    }
+
+        //}
+
+        static public void SaveGuildData()
         {
             var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+            var fi = new System.IO.FileInfo(@"./configuration/GuildStuff_103.bin");
 
-            if (File.Exists(@"DateTimes.bin"))
+            using (var binaryFile = fi.Create())
             {
-                var fi = new System.IO.FileInfo(@"DateTimes.bin");
+                binaryFormatter.Serialize(binaryFile, GuildStuffs103);
+                binaryFile.Flush();
+            }
 
+        }
+
+        void LoadData()
+        {
+            
+
+            if (File.Exists(@"./configuration/DateTimes.bin"))
+            {
+                var fi = new System.IO.FileInfo(@"./configuration/DateTimes.bin");
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
 
                 SortedDictionary<ulong, DateTime> readBack;
                 using (var binaryFile = fi.OpenRead())
@@ -214,17 +243,58 @@ namespace DiscordTimeNow
                 map = readBack;
             }
 
-            if (File.Exists(@"GuildStuff.bin"))
+            
+            //if (File.Exists(@"./configuration/GuildStuff.bin"))
+            //{
+            //    var fi = new System.IO.FileInfo(@"./configuration/GuildStuff.bin");
+            //    var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+
+            //    SortedDictionary<ulong, GuildStuff> readBack;
+            //    using (var binaryFile = fi.OpenRead())
+            //    {
+            //        readBack = (SortedDictionary<ulong, GuildStuff>)binaryFormatter.Deserialize(binaryFile);
+            //    }
+            //    GuildStuffs = readBack;
+
+            //    foreach (KeyValuePair<ulong, GuildStuff> i in GuildStuffs)
+            //    {
+            //        GuildStuff103 tmpGuildNew = new GuildStuff103();
+            //        tmpGuildNew.Brands = 0;
+            //        tmpGuildNew.Commands = 0;
+            //        tmpGuildNew.DontOwnRole = i.Value.DontOwnRole; //
+            //        tmpGuildNew.GeneralChannel = i.Value.GeneralChannel; //
+            //        tmpGuildNew.OwnRole = i.Value.OwnRole; //
+            //        tmpGuildNew.PendingRole = i.Value.PendingRole; //
+            //        tmpGuildNew.TTLCommands = 0;
+            //        tmpGuildNew.WelcomeMSG = ", please get a profile pic if you haven't already, and enjoy your stay.";
+            //        GuildStuffs103.Add(i.Key, tmpGuildNew);
+            //    }
+            //}
+
+            if (File.Exists(@"./configuration/GuildStuff_103.bin"))
             {
-                var fi = new System.IO.FileInfo(@"GuildStuff.bin");
+                var fi = new System.IO.FileInfo(@"./configuration/GuildStuff_103.bin");
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
 
-
-                SortedDictionary<ulong, GuildStuff> readBack;
+                SortedDictionary<ulong, GuildStuff103> readBack;
                 using (var binaryFile = fi.OpenRead())
                 {
-                    readBack = (SortedDictionary<ulong, GuildStuff>)binaryFormatter.Deserialize(binaryFile);
+                    readBack = (SortedDictionary<ulong, GuildStuff103>)binaryFormatter.Deserialize(binaryFile);
                 }
-                GuildStuffs = readBack;
+                GuildStuffs103 = readBack;
+            }
+
+            if (File.Exists(@"./configuration/GuildBrands.bin"))
+            {
+                var fi = new System.IO.FileInfo(@"./configuration/GuildBrands.bin");
+                var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+
+                SortedDictionary<ulong, ulong> readBack;
+                using (var binaryFile = fi.OpenRead())
+                {
+                    readBack = (SortedDictionary<ulong, ulong>)binaryFormatter.Deserialize(binaryFile);
+                }
+                Guildbrands = readBack;
             }
 
         }

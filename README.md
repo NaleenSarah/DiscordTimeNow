@@ -1,7 +1,17 @@
 # DiscordTimeNow
-Discord.Net 1.0.0, Lobby and Time bot.
 
-Search for "CHANGE ME" for variables to change.
+***New in 1.1.1
+
+Added a json file in /configuration/config.json Add your bot token key here.
+File also contains a prefix which is not currently in use.
+
+Added new command dlh_stats
+
+Added a json load for the config
+Added file GuildData.cs for future work
+
+
+***Discord.Net 1.0.0, Lobby and Time bot.
 
 **Admin 
 exec_dlh: 	set defaults for the server, run exec_dlh command for more info.
@@ -24,7 +34,8 @@ own:	Sets role of user to own game.
 nope:	Sets role of user to don't own game.
 uruk:	Display a random Uruk Name.
 urukme: Changes nickname of invoker to random uruk name.
+dlh_stats:	Basic Stats tracking.
 
 
-Version 1.0 Release 24 Aug 2017.
+Version 1.1.1 Release 15 Oct 2017.
 Created by Sarah Cooper, MSc, 6ft6.

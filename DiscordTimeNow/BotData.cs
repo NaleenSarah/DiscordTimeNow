@@ -13,14 +13,14 @@ namespace DiscordTimeNow
         [JsonIgnore]
         public static readonly string appdir = AppContext.BaseDirectory;
 
-        //public string Prefix { get; set; }
-        //public string Token { get; set; }
+        public string Prefix { get; set; }
+        public string Token { get; set; }
         
 
         public BotData()
         {
-            //Prefix = "!";
-            //Token = "";
+            Prefix = "!";
+            Token = "";
         }
 
         public void Save(string dir = "configuration/config.json")
@@ -28,7 +28,7 @@ namespace DiscordTimeNow
             string file = Path.Combine(appdir, dir);
             File.WriteAllText(file, ToJson());
         }
-        public static BotData Load(string dir = "configuration/config.json")
+        public BotData Load(string dir = "configuration/config.json")
         {
             string file = Path.Combine(appdir, dir);
             return JsonConvert.DeserializeObject<BotData>(File.ReadAllText(file));
