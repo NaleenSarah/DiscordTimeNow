@@ -24,6 +24,9 @@ namespace DiscordTimeNow
         public static void Main(string[] args) =>
            new Program().Start().GetAwaiter().GetResult();
 
+        //---------------------------------------------------------------------------------------------
+        //Seriializable exposes the function names to Discord.
+        //---------------------------------------------------------------------------------------------
         [Serializable()]
         public class GuildStuff {
             public string PendingRole { get; set; }
@@ -124,6 +127,9 @@ namespace DiscordTimeNow
             //await client.Disconnected().;
 
         }
+        //---------------------------------------------------------------------------------------------
+        //Discord Log handling, changes colour of console logs depending on severity of error.
+        //---------------------------------------------------------------------------------------------
         private static Task Logger(LogMessage lmsg)
         {
             var cc = Console.ForegroundColor;
@@ -169,12 +175,17 @@ namespace DiscordTimeNow
             return provider;
         }
 
+        //---------------------------------------------------------------------------------------------
+        //Call to save all functions for ease of access.
+        //---------------------------------------------------------------------------------------------
         static public void SaveData() {
             SaveTimeData();
             SaveGuildData();
 
         }
-
+        //---------------------------------------------------------------------------------------------
+        //Auto Save every X seconds.
+        //---------------------------------------------------------------------------------------------
         static public void SaveDataThread()
         {
             while (!thread1exit)
@@ -185,6 +196,10 @@ namespace DiscordTimeNow
                 Thread.Sleep(100000);
             }
         }
+
+        //---------------------------------------------------------------------------------------------
+        //Save DateTimes as bin
+        //---------------------------------------------------------------------------------------------
 
         static public void SaveTimeData()
         {
@@ -212,6 +227,9 @@ namespace DiscordTimeNow
 
         //}
 
+        //---------------------------------------------------------------------------------------------
+        //Save Guild Data as GuildStuff.bin
+        //---------------------------------------------------------------------------------------------
         static public void SaveGuildData()
         {
             var binaryFormatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
@@ -225,6 +243,13 @@ namespace DiscordTimeNow
 
         }
 
+        //---------------------------------------------------------------------------------------------
+        //LoadData(void)
+        //Loads all the saved data for the Discord Server.
+        //DateTimes() as Bin
+        //GuildBrands() as Bin
+        //GuildStuff() as Bin
+        //---------------------------------------------------------------------------------------------
         void LoadData()
         {
             
@@ -297,7 +322,9 @@ namespace DiscordTimeNow
             }
 
         }
-
+        //---------------------------------------------------------------------------------------------
+        //Init TimeZones, This could be loaded from file in the future build.
+        //---------------------------------------------------------------------------------------------
         void initZoneDict()
         {
             DictTimeZoneAbrA = new Dictionary<string, string> { 
@@ -385,7 +412,9 @@ namespace DiscordTimeNow
                 { "SMST" , "Samoa Standard Time" }
             };
         }
-
+        //---------------------------------------------------------------------------------------------
+        //Names of Uruk creatures from Lord of the Rings
+        //---------------------------------------------------------------------------------------------
         void initUrukNames()
         {
             ArrayUrukNames = new string[] {
@@ -500,7 +529,9 @@ namespace DiscordTimeNow
                 "Zunn"
                };
         }
-
+        //---------------------------------------------------------------------------------------------
+        //Names of Uruk creatures from Lord of the Rings
+        //---------------------------------------------------------------------------------------------
         void initUrukTitles()
         {
             ArrayUrukTitles = new string[] {
